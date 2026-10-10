@@ -1,28 +1,72 @@
 import streamlit as st
+from utils import check_password, load_custom_css
 
-def load_custom_css():
-    """Injects lightweight custom styling into the Streamlit app."""
-    custom_css = """
-        <style>
-            .block-container { padding-top: 2rem; }
-            footer { visibility: hidden; }
-        </style>
-    """
-    st.markdown(custom_css, unsafe_allow_html=True)
+def main():
+    # --- PAGE CONFIGURATION ---
+    st.set_page_config(
+        page_title="Baseline App Shell",
+        page_icon="⚡",
+        layout="wide",
+        initial_sidebar_state="expanded"
+    )
 
-def check_password():
-    """Simple passcode check pattern using secrets.toml."""
-    if st.session_state.get("password_correct", False):
-        return True
+    # --- LOAD STYLES ---
+    load_custom_css()
 
-    password_input = st.text_input("Enter Passcode", type="password", key="password_input")
+    # --- INITIALIZE SESSION STATE ---
+    if "user_authenticated" not in st.session_state:
+        st.session_state["user_authenticated"] = False
+    if "current_page" not in st.session_state:
+        st.session_state["current_page"] = "Dashboard"
 
-    if password_input:
-        expected_password = st.secrets.get("APP_PASSWORD", "admin123")
-        if password_input == expected_password:
-            st.session_state["password_correct"] = True
-            st.rerun()
-        else:
-            st.error("Incorrect Password")
+    # --- AUTHENTICATION CHECK ---
+    if not st.session_state["user_authenticated"]:
+        if not check_password():
+            st.stop()
 
-    return False
+    # --- SIDEBAR NAVIGATION ---
+    st.sidebar.title("Navigation")
+    page_options = ["Dashboard", "Data Analysis", "Settings"]
+    st.sidebar.radio(
+        "Select View:",
+        options=page_options,
+        key="current_page"
+    )
+
+    st.sidebar.markdown("---")
+    st.sidebar.caption("System Status: Active")
+
+    # --- ROUTER LOGIC ---
+    current_page = st.session_state["current_page"]
+
+    if current_page == "Dashboard":
+        render_dashboard()
+    elif current_page == "Data Analysis":
+        render_data_analysis()
+    elif current_page == "Settings":
+        render_settings()
+
+def render_dashboard():
+    st.title("📊 Dashboard Baseline")
+    st.write("Welcome to the core application workspace.")
+    
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Active Sessions", "12", "+2")
+    col2.metric("Processing Time", "1.2s", "-0.3s")
+    col3.metric("System Load", "34%", "0%")
+
+def render_data_analysis():
+    st.title("📈 Data Analysis")
+    st.write("Upload or query records here.")
+    
+    uploaded_file = st.file_uploader("Upload CSV Data", type=["csv"])
+    if uploaded_file:
+        st.success("File uploaded successfully!")
+
+def render_settings():
+    st.title("⚙️ Application Settings")
+    st.text_input("API Base URL", value="https://api.example.com/v1")
+    st.toggle("Enable Verbose Logging", value=True)
+
+if __name__ == "__main__":
+    main()
